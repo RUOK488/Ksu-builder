@@ -6,15 +6,15 @@ on:
       kernel_source:
         description: '🔗 URL kernel source'
         required: true
-        default: 'https://github.com/stormbreaker-project/kernel_xiaomi_vayu'   # Working source with SUSFS & LN8000
+        default: 'https://github.com/Jebaitedneko/android_kernel_xiaomi_vayu'   # Working source with SUSFS & LN8000
       kernel_branch:
         description: '🌿 Branch kernel source'
         required: true
-        default: 'fourteen'   # Correct branch for Android 13 / MIUI 14
+        default: 'fourteen'   # Verified branch for Android 13 / MIUI 14
       defconfig:
         description: '🧪 Kernel defconfig'
         required: true
-        default: 'vayu_user_defconfig'
+        default: 'vayu_user_defconfig'   # Verified defconfig for MIUI/HyperOS builds
       anykernel:
         description: '📦 Use AnyKernel3 packaging?'
         required: true
@@ -57,8 +57,11 @@ jobs:
           mkdir clang && curl -s https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-dev/clang-r487747c.tar.gz -RLO && tar -C clang/ -xf clang-*.tar.gz
 
       - name: ⏱️ Pull Kernel Source
-        run: |
-          git clone --depth=1 ${{ github.event.inputs.kernel_source }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.kernel_source }}
+          ref: ${{ github.event.inputs.kernel_branch }}
+          path: kernel-source
 
       # No manual SUSFS patching needed – the source already has it integrated.
       # The LN8000 driver fix is also already present in this kernel source.
