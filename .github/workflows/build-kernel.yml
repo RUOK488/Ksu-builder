@@ -10,7 +10,7 @@ on:
       kernel_branch:
         description: '🌿 Branch kernel source'
         required: true
-        default: 'fourteen'   # ✅ Correct branch for Android 13 / MIUI 14
+        default: 'fourteen'
       defconfig:
         description: '🧪 Kernel defconfig'
         required: true
@@ -60,25 +60,20 @@ jobs:
         run: |
           git clone --depth=1 ${{ github.event.inputs.kernel_source }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
 
-      - name: 🩹 Apply SUSFS (for kernel 4.14)
+      - name: 🩹 Apply SUSFS (using working mirror)
         run: |
-          git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git susfs4ksu
+          git clone --depth=1 -b kernel-4.14 https://github.com/weaponmasterjax/susfs4ksu-everpal.git susfs4ksu
           cd kernel-source
-          # Copy filesystem and header patches
           cp -r ../susfs4ksu/kernel_patches/fs/* fs/
           cp -r ../susfs4ksu/kernel_patches/include/linux/* include/linux/
-          # Apply the main kernel patch
-          patch -p1 < ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.14.patch
-          # Enable SUSFS in defconfig
+          patch -p1 < ../susfs4ksu/kernel_patches/0001-Implement-SUSFS-v1.5.3-universal.patch
           echo 'CONFIG_KSU_SUSFS=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
 
       - name: 🔋 Fix LN8000 battery driver (1% bug)
         run: |
           git clone --depth=1 https://github.com/itsshashanksp/kernel_xiaomi_sm6150.git fixed_drivers
           cd kernel-source
-          # Copy working LN8000 driver
           cp ../fixed_drivers/drivers/power/supply/ln8000* drivers/power/supply/
-          # Enable the driver in config
           echo 'CONFIG_LN8000_CHARGER=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
 
       - name: 🧙 Inject KernelSU-Next
