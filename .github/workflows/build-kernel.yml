@@ -10,7 +10,7 @@ on:
       kernel_branch:
         description: '🌿 Branch kernel source'
         required: true
-        default: 'main'   # Fixed: use 'main' instead of 'master'
+        default: 'fourteen'   # ✅ Correct branch for Android 13 / MIUI 14
       defconfig:
         description: '🧪 Kernel defconfig'
         required: true
@@ -31,7 +31,7 @@ on:
       zip_name:
         description: '📝 Output ZIP base name'
         required: false
-        default: 'ReogKernelSU'
+        default: 'Vayu-KernelSU-Next'
       developer:
         description: '👤 Developer name/ID'
         required: false
@@ -60,33 +60,32 @@ jobs:
         run: |
           git clone --depth=1 ${{ github.event.inputs.kernel_source }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
 
-      - name: 🩹 Apply SUSFS v1.5.3 (universal patch)
+      - name: 🩹 Apply SUSFS (for kernel 4.14)
         run: |
           git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git susfs4ksu
           cd kernel-source
-          # Copy fs and header files
+          # Copy filesystem and header patches
           cp -r ../susfs4ksu/kernel_patches/fs/* fs/
           cp -r ../susfs4ksu/kernel_patches/include/linux/* include/linux/
-          # Apply the universal patch
-          patch -p1 < ../susfs4ksu/kernel_patches/0001-Implement-SUSFS-v1.5.3-universal.patch
+          # Apply the main kernel patch
+          patch -p1 < ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.14.patch
           # Enable SUSFS in defconfig
           echo 'CONFIG_KSU_SUSFS=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
-          cd ..
 
       - name: 🔋 Fix LN8000 battery driver (1% bug)
         run: |
           git clone --depth=1 https://github.com/itsshashanksp/kernel_xiaomi_sm6150.git fixed_drivers
           cd kernel-source
+          # Copy working LN8000 driver
           cp ../fixed_drivers/drivers/power/supply/ln8000* drivers/power/supply/
+          # Enable the driver in config
           echo 'CONFIG_LN8000_CHARGER=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
-          cd ..
 
-      - name: 🧙 Inject KernelSU-Next (legacy non‑GKI method)
+      - name: 🧙 Inject KernelSU-Next
         if: ${{ github.event.inputs.enable_kernelsu_next }}
         run: |
-          cd kernel-source
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
-          cd ..
+          git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU
+          bash KernelSU/tools/init_kernelsu.sh kernel-source
 
       - name: ⚙️ Build Kernel
         run: |
@@ -109,7 +108,7 @@ jobs:
         run: |
           git clone --depth=1 -b "${{ github.event.inputs.anykernel_branch }}" "${{ github.event.inputs.anykernel_repo }}" AnyKernel3
           rm -rf AnyKernel3/.git* AnyKernel3/LICENSE AnyKernel3/README.md
-          IMG_PATH="../out/arch/arm64/boot"
+          IMG_PATH="out/arch/arm64/boot"
           for img in Image.gz-dtb Image-dtb Image.gz Image; do
             if [[ -f $IMG_PATH/$img ]]; then
               cp $IMG_PATH/$img AnyKernel3/$img
