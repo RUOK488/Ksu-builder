@@ -10,7 +10,7 @@ on:
       kernel_branch:
         description: '🌿 Branch kernel source'
         required: true
-        default: 'master'
+        default: 'main'   # Fixed: use 'main' instead of 'master'
       defconfig:
         description: '🧪 Kernel defconfig'
         required: true
@@ -64,13 +64,14 @@ jobs:
         run: |
           git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git susfs4ksu
           cd kernel-source
-          # Copy filesystem and header files
+          # Copy fs and header files
           cp -r ../susfs4ksu/kernel_patches/fs/* fs/
           cp -r ../susfs4ksu/kernel_patches/include/linux/* include/linux/
           # Apply the universal patch
           patch -p1 < ../susfs4ksu/kernel_patches/0001-Implement-SUSFS-v1.5.3-universal.patch
           # Enable SUSFS in defconfig
           echo 'CONFIG_KSU_SUSFS=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
+          cd ..
 
       - name: 🔋 Fix LN8000 battery driver (1% bug)
         run: |
@@ -78,12 +79,14 @@ jobs:
           cd kernel-source
           cp ../fixed_drivers/drivers/power/supply/ln8000* drivers/power/supply/
           echo 'CONFIG_LN8000_CHARGER=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
+          cd ..
 
-      - name: 🧙 Inject KernelSU-Next
+      - name: 🧙 Inject KernelSU-Next (legacy non‑GKI method)
         if: ${{ github.event.inputs.enable_kernelsu_next }}
         run: |
-          git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU
-          bash KernelSU/tools/init_kernelsu.sh kernel-source
+          cd kernel-source
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+          cd ..
 
       - name: ⚙️ Build Kernel
         run: |
@@ -106,7 +109,7 @@ jobs:
         run: |
           git clone --depth=1 -b "${{ github.event.inputs.anykernel_branch }}" "${{ github.event.inputs.anykernel_repo }}" AnyKernel3
           rm -rf AnyKernel3/.git* AnyKernel3/LICENSE AnyKernel3/README.md
-          IMG_PATH="out/arch/arm64/boot"
+          IMG_PATH="../out/arch/arm64/boot"
           for img in Image.gz-dtb Image-dtb Image.gz Image; do
             if [[ -f $IMG_PATH/$img ]]; then
               cp $IMG_PATH/$img AnyKernel3/$img
