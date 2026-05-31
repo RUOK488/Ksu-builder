@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       kernel_source:
-        description: '🔗 URL kernel source'
+        description: '🔗 Kernel source (owner/repo)'
         required: true
-        default: 'https://github.com/Jebaitedneko/android_kernel_xiaomi_vayu'   # Working source with SUSFS & LN8000
+        default: 'Jebaitedneko/android_kernel_xiaomi_vayu'   # Correct format
       kernel_branch:
-        description: '🌿 Branch kernel source'
+        description: '🌿 Branch'
         required: true
-        default: 'fourteen'   # Verified branch for Android 13 / MIUI 14
+        default: 'fourteen'
       defconfig:
         description: '🧪 Kernel defconfig'
         required: true
-        default: 'vayu_user_defconfig'   # Verified defconfig for MIUI/HyperOS builds
+        default: 'vayu_user_defconfig'
       anykernel:
         description: '📦 Use AnyKernel3 packaging?'
         required: true
@@ -63,15 +63,14 @@ jobs:
           ref: ${{ github.event.inputs.kernel_branch }}
           path: kernel-source
 
-      # No manual SUSFS patching needed – the source already has it integrated.
-      # The LN8000 driver fix is also already present in this kernel source.
+      # The kernel source already has SUSFS and LN8000 driver fixes, no manual patching needed.
 
-      - name: 🔧 Verify SUSFS and LN8000 configs (optional)
+      - name: 🔧 Verify SUSFS and LN8000 configs
         run: |
           cd kernel-source
-          # Ensure SUSFS is enabled (should already be there, but safe)
+          # Ensure SUSFS is enabled (just in case)
           grep -q "CONFIG_KSU_SUSFS=y" arch/arm64/configs/${{ github.event.inputs.defconfig }} || echo 'CONFIG_KSU_SUSFS=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
-          # Ensure LN8000 charger driver is enabled (already fixed in source)
+          # Ensure LN8000 charger driver is enabled
           grep -q "CONFIG_LN8000_CHARGER=y" arch/arm64/configs/${{ github.event.inputs.defconfig }} || echo 'CONFIG_LN8000_CHARGER=y' >> arch/arm64/configs/${{ github.event.inputs.defconfig }}
 
       - name: 🧙 Inject KernelSU-Next
